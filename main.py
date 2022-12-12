@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
-# from matplotlib import image as mpimg
 import cv2
 import os
 import math
 import numpy as np
-# from scipy.ndimage.morphology import distance_transform_edt
 
 from functionsFile import *
 from getMosaice import getMosaice
@@ -15,28 +13,7 @@ showIntermediateSteps = False
 saveOutput = True
 showMatches = False
 
-# DATA SET IDX
-# 0 arena
-# 1 big_house
-# 2 bridge
-# 3 building_site
-# 4 carmel
-# 5 diamondhead
-# 6 fishbowl
-# 7 golden_gate
-# 8 halfdome
-# 9 hotel
-# 10 office
-# 11 ponte_nuovo
-# 12 rio
-# 13 river
-# 14 roof
-# 15 san_pietro
-# 16 shangai
-# 17 yard
-# 18 lab
-# 19 cavignal
-relativePathFolder, outputSavePath, defaultStartIdx,  checksOnDeterminant, determinantCheckLowerBound, determinantCheckUpperBound = getPathToImages(20)
+relativePathFolder, outputSavePath, defaultStartIdx = getPathToImages(3)
 
 images = []
 for filename in os.listdir(relativePathFolder):
@@ -60,7 +37,8 @@ if showImageSubplot:
             for j in range(5):
                 ax[i,j].imshow(images[k][:,:,::-1])
                 k+=1
-                      
+    plt.show()
+
 mosaiceCollection = []
 
 imagesToUseIdx = list(range(len(images)))
@@ -76,7 +54,7 @@ while len(imagesToUseIdx) != 0:
         startImgIdx = imagesToUseIdx[0]
         imagesToUseIdx.pop(0)
 
-    mosaice, imagesToUseIdx = getMosaice(images, startImgIdx, useGrayImages, checksOnDeterminant, determinantCheckLowerBound, determinantCheckUpperBound, showIntermediateSteps, imagesToUseIdx)
+    mosaice, imagesToUseIdx = getMosaice(images, startImgIdx, useGrayImages, showIntermediateSteps, imagesToUseIdx, outputSavePath, showMatches)
 
     mosaiceCollection.append(mosaice)
 

@@ -6,12 +6,11 @@ from functionsFile import *
 
 def getMosaice( images, 
                 startImgIndex,
-                useGrayImages, 
-                checksOnDeterminant,
-                determinantCheckLowerBound, 
-                determinantCheckUpperBound,
+                useGrayImages,
                 showIntermediateSteps,
-                imagesToUseIdx
+                imagesToUseIdx,
+                outputSavePath,
+                showMatches
                 ):
     
     sift = cv2.SIFT_create()
@@ -20,8 +19,6 @@ def getMosaice( images,
     keypoints, descriptors = extractFeatures(images, sift, useGrayImages)
 
     base_img = images[startImgIndex]
-
-    discaredImagesIdx = []
 
      # Augment base image with black countour, assuming images shape all equal to the one of startImage
     top = int(base_img.shape[0])
@@ -79,14 +76,6 @@ def getMosaice( images,
             print("H not greater than minimum bound")
             break
 
-        if checksOnDeterminant:
-            print("Check on H determinant ...")
-            if determinantH < determinantCheckLowerBound or determinantH > determinantCheckUpperBound:
-                print("H determinant NOT within bounds")
-                break
-            else:
-                print("H determinant check OK")
-
         print("Applying homography transformation ...")
         
         imagesToUseIdx.remove(bestMatchesImageIdx)
@@ -100,7 +89,7 @@ def getMosaice( images,
 
         after_mosaice = blending(base_img, img_warped, True)
 
-        # drawMatches(before_mosaice, base_kp, images[bestMatchesImageIdx], keypoints[bestMatchesImageIdx], bestMatches[30:40], True, outputSavePath, i)
+        drawMatches(before_mosaice, base_kp, images[bestMatchesImageIdx], keypoints[bestMatchesImageIdx], bestMatches[0:10], showMatches, outputSavePath, i)
         
         if showIntermediateSteps:
             fig, ax = plt.subplots(1, 2)

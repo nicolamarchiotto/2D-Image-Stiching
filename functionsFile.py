@@ -3,195 +3,109 @@ import cv2
 import numpy as np 
 from scipy.ndimage.morphology import distance_transform_edt
 
-# FUNCTIONS
-
 def getPathToImages(datasetIndex):
-    if datasetIndex ==0:
+
+    if datasetIndex == 0:
+        relativePathFolder = 'images/andalo/source_images/'
+        outputSavePath = 'images/andalo/'
+        startImgIndex = 4
+
+    elif datasetIndex == 1:
         relativePathFolder = 'images/arena/source_images/'
         outputSavePath = 'images/arena/'
         startImgIndex = 4
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
     
-    elif datasetIndex == 1:
+    elif datasetIndex == 2:
         relativePathFolder = 'images/big_house/source_images/'
         outputSavePath = 'images/big_house/'
         startImgIndex = 1
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
         
-    elif datasetIndex == 2:
+    elif datasetIndex == 3:
         relativePathFolder = 'images/bridge/source_images/'
         outputSavePath = 'images/bridge/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
     
-    elif datasetIndex == 3:
+    elif datasetIndex == 4:
         relativePathFolder = 'images/building_site/source_images/'
         outputSavePath = 'images/building_site/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
-        
-    elif datasetIndex == 4:
-        relativePathFolder = 'images/carmel/source_images/'
-        outputSavePath = 'images/carmel/'
-        startImgIndex = 9
-        determinantCheck = True
-        determinantLowerBound = 0.5
-        determinantUpperBound = 20
         
     elif datasetIndex == 5:
         relativePathFolder = 'images/diamondhead/source_images/'
         outputSavePath = 'images/diamondhead/'
         startImgIndex = 10
-        determinantCheck = True
-        determinantLowerBound = 0.5
-        determinantUpperBound = 50
 
     elif datasetIndex == 6:
         relativePathFolder = 'images/fishbowl/source_images/'
         outputSavePath = 'images/fishbowl/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
     elif datasetIndex == 7:
         relativePathFolder = 'images/golden_gate/source_images/'
         outputSavePath = 'images/golden_gate/'
         startImgIndex = 3
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
     elif datasetIndex == 8:
         relativePathFolder = 'images/halfdome/source_images/'
         outputSavePath = 'images/halfdome/'
         startImgIndex = 0
-        determinantCheck = True
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
     elif datasetIndex == 9:
         relativePathFolder = 'images/hotel/source_images/'
         outputSavePath = 'images/hotel/'
         startImgIndex = 4
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
-
+    
     elif datasetIndex == 10:
+        relativePathFolder = 'images/laroda/source_images/'
+        outputSavePath = 'images/laroda/'
+        startImgIndex = 6
+
+    elif datasetIndex == 11:
         relativePathFolder = 'images/office/source_images/'
         outputSavePath = 'images/office/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 11:
+    elif datasetIndex == 12:
         relativePathFolder = 'images/ponte_nuovo/source_images/'
         outputSavePath = 'images/ponte_nuovo/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 12:
+    elif datasetIndex == 13:
         relativePathFolder = 'images/rio/source_images/'
         outputSavePath = 'images/rio/'
         startImgIndex = 25
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 13:
+    elif datasetIndex == 14:
         relativePathFolder = 'images/river/source_images/'
         outputSavePath = 'images/river/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 14:
+    elif datasetIndex == 15:
         relativePathFolder = 'images/roof/source_images/'
         outputSavePath = 'images/roof/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 15:
+    elif datasetIndex == 16:
         relativePathFolder = 'images/san_pietro/source_images/'
         outputSavePath = 'images/san_pietro/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 16:
+    elif datasetIndex == 17:
         relativePathFolder = 'images/shangai/source_images/'
         outputSavePath = 'images/shangai/'
         startImgIndex = 7
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
 
-    elif datasetIndex == 17:
+    elif datasetIndex == 18:
         relativePathFolder = 'images/yard/source_images/'
         outputSavePath = 'images/yard/'
         startImgIndex = 0
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
-
-    elif datasetIndex == 18:
-        relativePathFolder = 'images/lab/source_images/'
-        outputSavePath = 'images/lab/'
-        startImgIndex = 7
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
-
-    elif datasetIndex == 19:
-        relativePathFolder = 'images/cavignal/source_images/'
-        outputSavePath = 'images/cavignal/'
-        startImgIndex = 7
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
-        
-    elif datasetIndex == 20:
-        relativePathFolder = 'images/hot_air_baloon/source_images/'
-        outputSavePath = 'images/hot_air_baloon/'
-        startImgIndex = 12
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
-    
-    elif datasetIndex == 21:
-        relativePathFolder = 'images/city/source_images/'
-        outputSavePath = 'images/city/'
-        startImgIndex = 10
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
     
     else:
         relativePathFolder = 'wrongCaseIdx'
         outputSavePath = 'wrongCaseIdx'
         startImgIndex = -1
-        determinantCheck = False
-        determinantLowerBound = 0.5
-        determinantUpperBound = 3
     
-    
-    return (relativePathFolder, outputSavePath, startImgIndex,  determinantCheck, determinantLowerBound, determinantUpperBound)
+    return (relativePathFolder, outputSavePath, startImgIndex)
 
 # Removes black borders from image 
 def trim_black_countour(image): 
@@ -207,12 +121,10 @@ def trim_black_countour(image):
 
 # Compose the mosaice from 2 images using color adjust 
 def blending(I1, I2, blendingOn):
-
     '''
-    WEIGHTENED BLENDING:
+    WEIGHTED BLENDING:
     I_blended = (I1 * w1 + I2 * w2)/(w1 + w2)
     I1 = ref_img, I2 = warped_img
-    distance_transform_edt gives more weight to the px in the centre of the image and less on the borders.
     Link: https://www.youtube.com/watch?v=D9rAOAL12SY
     '''
 
@@ -266,25 +178,24 @@ def getHMatrix(matches, kp_base, kp_toWarp, numberOfPoints, iterations):
 
     return h
 
-def drawMatches(img1, keypoints1, img2, keypoints2, good_matches, saveImage, outputSavePath, iteration):
+def drawMatches(img1, keypoints1, img2, keypoints2, matches, showMatches, outputSavePath, iteration):
     #-- Draw matches
     
     #img_matches = np.empty((max(img1.shape[0], img2.shape[0]), img1.shape[1]+img2.shape[1], 3), dtype=np.uint8)
     #cv2.drawMatches(img1, keypoints1, img2, keypoints2, good_matches[0:10], img_matches, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     #-- Show detected matches
-    # https://docs.opencv.org/3.4/d1/de0/tutorial_py_feature_homography.html
     draw_params = dict(matchColor = (0,255,0), # draw matches in green color
                singlePointColor = None,
                # matchesMask = matchesMask, # draw only inliers
                flags = 2)
 
-    img_matches = cv2.drawMatches(img1, keypoints1, img2, keypoints2, good_matches, None,  flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    img_matches = cv2.drawMatches(img1, keypoints1, img2, keypoints2, matches, None,  **draw_params)
 
-    plt.imshow(img_matches[:,:,::-1])
-    plt.title('Good Matches')
-    plt.show()
-    if saveImage:
-        cv2.imwrite(f"{outputSavePath}matches_{iteration}.jpg", img_matches)
+    if showMatches:
+        plt.imshow(img_matches[:,:,::-1])
+        plt.title('Good Matches')
+        plt.show()
+    cv2.imwrite(f"{outputSavePath}matches_{iteration}.jpg", img_matches)
 
 def extractFeatures(images, sift, useGrayImages):
     # EXTRACTING FEATURES
