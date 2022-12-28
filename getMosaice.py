@@ -16,7 +16,7 @@ def getMosaice( images,
     sift = cv2.SIFT_create()
 
     print("Extracting features of imgages...")
-    keypoints, descriptors = extractFeatures(images, sift, useGrayImages)
+    keypoints, descriptors = extractFeaturesSIFT(images, sift, useGrayImages)
 
     base_img = images[startImgIndex]
 
@@ -64,7 +64,7 @@ def getMosaice( images,
         print("Choosem image index ", bestMatchesImageIdx)
         print("Number of matches for H computation ", len(bestMatches))
 
-        h = getHMatrix(bestMatches, base_kp, bestMatchesKeyPoints,  len(bestMatches), 130)
+        h = getHMatrixSIFT(bestMatches, base_kp, bestMatchesKeyPoints,  len(bestMatches), 130)
     
         # DETERMINANT CHECK
         # The determinant of a transformation matrix can be seen as a scaling factor

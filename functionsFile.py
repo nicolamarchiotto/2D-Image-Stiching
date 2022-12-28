@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np 
 from scipy.ndimage.morphology import distance_transform_edt
+import matplotlib
 
 def getPathToImages(datasetIndex):
 
@@ -18,7 +19,7 @@ def getPathToImages(datasetIndex):
     elif datasetIndex == 2:
         relativePathFolder = 'images/big_house/source_images/'
         outputSavePath = 'images/big_house/'
-        startImgIndex = 1
+        startImgIndex = 0
         
     elif datasetIndex == 3:
         relativePathFolder = 'images/bridge/source_images/'
@@ -160,7 +161,7 @@ def getSortedMatches(matches, percentageDistanceThesh):
 
         return sortedMatches
                 
-def getHMatrix(matches, kp_base, kp_toWarp, numberOfPoints, iterations):
+def getHMatrixSIFT(matches, kp_base, kp_toWarp, numberOfPoints, iterations):
     
     baseImage_idx = matches[0].queryIdx
     toWarpImage_idx = matches[0].trainIdx
@@ -175,6 +176,32 @@ def getHMatrix(matches, kp_base, kp_toWarp, numberOfPoints, iterations):
         pts_toWarp = np.concatenate((pts_toWarp, [[kp_toWarp[toWarpImage_idx].pt[0], kp_toWarp[toWarpImage_idx].pt[1]]]))
 
     h, status = cv2.findHomography(pts_toWarp, pts_base, cv2.RANSAC, maxIters = iterations)
+    print("SIFT: h ", h )
+    return h
+
+def compH_getHMatrixSIFT(matches, dest_kp, source_kp, numberOfPoints, iterations):
+    
+    dest_idx = matches[0].queryIdx
+    source_idx = matches[0].trainIdx
+    pts_dest = np.array([[dest_kp[dest_idx].pt[0], dest_kp[dest_idx].pt[1]]])
+    pts_source = np.array([[source_kp[source_idx].pt[0], source_kp[source_idx].pt[1]]])
+
+    for x in range(numberOfPoints-1):
+        dest_idx = matches[0].queryIdx
+        source_idx = matches[0].trainIdx
+
+        pts_dest = np.concatenate((pts_dest, [[dest_kp[dest_idx].pt[0], dest_kp[dest_idx].pt[1]]]))
+        pts_source = np.concatenate((pts_source, [[source_kp[source_idx].pt[0], source_kp[source_idx].pt[1]]]))
+
+    h, status = cv2.findHomography(pts_source, pts_dest, cv2.RANSAC, maxIters = iterations)
+    print("SIFT: h ", h )
+    return h
+
+def getHMatrixLOFTR(kp_base, kp_ts, numberOfPoints, iterations):
+    
+    h, status = cv2.findHomography(kp_base, kp_ts, cv2.RANSAC, maxIters = iterations)
+
+    print("LOFTR: h ", h )
 
     return h
 
@@ -197,7 +224,7 @@ def drawMatches(img1, keypoints1, img2, keypoints2, matches, showMatches, output
         plt.show()
     cv2.imwrite(f"{outputSavePath}matches_{iteration}.jpg", img_matches)
 
-def extractFeatures(images, sift, useGrayImages):
+def extractFeaturesSIFT(images, sift, useGrayImages):
     # EXTRACTING FEATURES
     #Get gray images
     images_g = []
@@ -217,3 +244,50 @@ def extractFeatures(images, sift, useGrayImages):
         descriptors.append(descr)
 
     return keypoints, descriptors
+
+def make_matching_figure_loftr(
+        img0, img1, mkpts0, mkpts1, color,
+        kpts0=None, kpts1=None, text=[], dpi=75, path=None):
+    # draw image pair
+    assert mkpts0.shape[0] == mkpts1.shape[0], f'mkpts0: {mkpts0.shape[0]} v.s. mkpts1: {mkpts1.shape[0]}'
+    fig, axes = plt.subplots(1, 2, figsize=(10, 6), dpi=dpi)
+    axes[0].imshow(img0, cmap='gray')
+    axes[1].imshow(img1, cmap='gray')
+    for i in range(2):   # clear all frames
+        axes[i].get_yaxis().set_ticks([])
+        axes[i].get_xaxis().set_ticks([])
+        for spine in axes[i].spines.values():
+            spine.set_visible(False)
+    plt.tight_layout(pad=1)
+    
+    if kpts0 is not None:
+        assert kpts1 is not None
+        axes[0].scatter(kpts0[:, 0], kpts0[:, 1], c='w', s=2)
+        axes[1].scatter(kpts1[:, 0], kpts1[:, 1], c='w', s=2)
+
+    # draw matches
+    if mkpts0.shape[0] != 0 and mkpts1.shape[0] != 0:
+        fig.canvas.draw()
+        transFigure = fig.transFigure.inverted()
+        fkpts0 = transFigure.transform(axes[0].transData.transform(mkpts0))
+        fkpts1 = transFigure.transform(axes[1].transData.transform(mkpts1))
+        fig.lines = [matplotlib.lines.Line2D((fkpts0[i, 0], fkpts1[i, 0]),
+                                            (fkpts0[i, 1], fkpts1[i, 1]),
+                                            transform=fig.transFigure, c=color[i], linewidth=1)
+                                        for i in range(len(mkpts0))]
+        
+        axes[0].scatter(mkpts0[:, 0], mkpts0[:, 1], c=color, s=4)
+        axes[1].scatter(mkpts1[:, 0], mkpts1[:, 1], c=color, s=4)
+
+    # put txts
+    txt_color = 'k' if img0[:100, :200].mean() > 200 else 'w'
+    fig.text(
+        0.01, 0.99, '\n'.join(text), transform=fig.axes[0].transAxes,
+        fontsize=15, va='top', ha='left', color=txt_color)
+
+    # save or return figure
+    if path:
+        plt.savefig(str(path), bbox_inches='tight', pad_inches=0)
+        plt.close()
+    else:
+        return fig
