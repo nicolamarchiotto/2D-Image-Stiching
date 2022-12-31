@@ -19,12 +19,12 @@ def getPathToImages(datasetIndex):
     elif datasetIndex == 2:
         relativePathFolder = 'images/big_house/source_images/'
         outputSavePath = 'images/big_house/'
-        startImgIndex = 0
+        startImgIndex = 1
         
     elif datasetIndex == 3:
         relativePathFolder = 'images/bridge/source_images/'
         outputSavePath = 'images/bridge/'
-        startImgIndex = 0
+        startImgIndex = 1
     
     elif datasetIndex == 4:
         relativePathFolder = 'images/building_site/source_images/'
@@ -121,16 +121,53 @@ def trim_black_countour(image):
     return image[min_y:max_y, min_x:max_x,:]
 
 # Compose the mosaice from 2 images using color adjust 
-def blending(I1, I2, blendingOn):
+def blending(I1, I2, blendingOn, outputSavePath):
     '''
     WEIGHTED BLENDING:
     I_blended = (I1 * w1 + I2 * w2)/(w1 + w2)
     I1 = ref_img, I2 = warped_img
     Link: https://www.youtube.com/watch?v=D9rAOAL12SY
     '''
-
+   
     # STITCHING THE TWO IMAGES
     if blendingOn:
+        gray1 = cv2.cvtColor(I1, cv2.COLOR_BGR2GRAY)
+        # cv2.imwrite(str(outputSavePath + "/loftr/gray_" + str(1) + ".jpg"), gray1)
+        _,thresh1 = cv2.threshold(gray1, 0, 255, 0)
+        # cv2.imwrite(str(outputSavePath + "/loftr/thresh_" + str(1) + ".jpg"), thresh1)
+        cnts1, _ = cv2.findContours(thresh1, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+
+        gray2 = cv2.cvtColor(I2, cv2.COLOR_BGR2GRAY)
+        # cv2.imwrite(str(outputSavePath + "/loftr/gray_" + str(2) + ".jpg"), gray2)
+        _,thresh2 = cv2.threshold(gray2, 0, 255, 0)
+        # cv2.imwrite(str(outputSavePath + "/loftr/thresh_" + str(2) + ".jpg"), thresh2)
+        cnts2,_ = cv2.findContours(thresh2, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[-2:]
+
+        for c in cnts1:
+            x1,y1,w1,h1 = cv2.boundingRect(c)
+
+        for c in cnts2:
+            x2,y2,w2,h2 = cv2.boundingRect(c)
+
+        leftMargin = x1 if x1 < x2 else x2
+        toptMargin = y1 if y1 < y2 else y2
+        rightMargin = x1+w1 if x1+w1 > x2+w2 else x2+w2
+        bottomMargin = y1+h1 if y1+h1 > y2+h2 else y2+h2
+
+
+        addToLeft = leftMargin
+        addToTop = toptMargin
+        addToBottom = I1.shape[0]-bottomMargin
+        addToRight = I1.shape[1]-rightMargin
+        
+        subImage1 = I1[toptMargin:bottomMargin,leftMargin:rightMargin]
+        subImage2 = I2[toptMargin:bottomMargin,leftMargin:rightMargin]
+        
+        # cv2.imwrite(str(outputSavePath + "/loftr/subimage_" + str(1) + ".jpg"), subImage1)
+        # cv2.imwrite(str(outputSavePath + "/loftr/subimage_" + str(2) + ".jpg"), subImage2)
+
+        I1 = subImage1
+        I2 = subImage2
         w1 = distance_transform_edt(I1) # This command correspond to the bwdist() in MATLAB
         w1 = np.divide(w1, np.max(w1))
         w2 = distance_transform_edt(I2)
@@ -138,8 +175,10 @@ def blending(I1, I2, blendingOn):
         I_blended = cv2.add(np.multiply(I1, w1), np.multiply(I2, w2))
         w_tot = w1 + w2
         I_blended = np.divide(I_blended, w_tot, out=np.zeros_like(I_blended), where=w_tot != 0).astype("uint8")
+        I_blended = cv2.copyMakeBorder(I_blended, addToTop, addToBottom, addToLeft, addToRight, cv2.BORDER_CONSTANT, None, 0)
     else:
         I_blended = cv2.add(I1,I2)        
+        
     return I_blended
 
 def getMatches(descr_1, descr_2):

@@ -14,7 +14,7 @@ matcher = LoFTR(config=default_cfg)
 matcher.load_state_dict(torch.load("weights/outdoor_ds.ckpt")['state_dict'])
 matcher = matcher.eval()
 
-relativePathFolder, outputSavePath, startImageIdx = getPathToImages(2)
+relativePathFolder, outputSavePath, startImageIdx = getPathToImages(5)
 
 
 # Storing H in the following way:
@@ -63,7 +63,7 @@ with torch.no_grad():
     while(len(imagesToBeStichedIdxArray) != 0):
         imagesToBeStichedIdxArray_len = len(imagesToBeStichedIdxArray)
         print("\n**********\n")
-        print("new iteration")
+        print("searching new correspondace\n")
         
         # choosing the best image to be stiched, the one with more corresondances
         # with a tree node
@@ -99,17 +99,14 @@ with torch.no_grad():
             print("no images with enough correspondances, breaking iter")
             break
         else:
-            print("Found correspondance from ", chosenSourceImg_idx , " to ", chosenTargetImg_idx)
-            print("NUmber of matches ", len(chosenSourceImg_matches))
+            print("Found correspondance from chosenSourceImg_idx", chosenSourceImg_idx , " to chosenTargetImg_idx", chosenTargetImg_idx)
+            print("Number of matches ", len(chosenSourceImg_matches))
 
             # transformation matrix which move image to be stiched in target image
             h, status = cv2.findHomography(chosenSourceImg_matches, chosenTargetImg_matches, cv2.RANSAC, maxIters = 50)
             tupleToSave = (chosenTargetImg_idx, chosenSourceImg_idx, h)
             homographyMatrixStorage.append(tupleToSave)
             imagesToBeStichedIdxArray.remove(chosenSourceImg_idx)
-
-            print("chosenSourceImg_idx ", chosenSourceImg_idx)
-            print("chosenTargetImg_idx ", chosenTargetImg_idx)
             
             # attach node to the right one  
             for node in PreOrderIter(treeHead):
@@ -119,32 +116,26 @@ with torch.no_grad():
         
             nodeToLink = Node(name=str(chosenSourceImg_idx), imageIdx=chosenSourceImg_idx, H=h, parent=nodeToAttachTo)
 
-            print("printing tree")
+            print("\nprinting tree")
             for pre, fill, node in RenderTree(treeHead):
                 print("%s%s" % (pre, node.name))    
 
-            print("number of iterations still to perform ", len(imagesToBeStichedIdxArray))
+            print("number of image to still to find target ", len(imagesToBeStichedIdxArray),"\n")
            
 
-# printing tree
-for pre, fill, node in RenderTree(treeHead):
-    print("%s%s" % (pre, node.name))
-
 # Building the mosaice as a compositio of homography matrices 
+print("Building the mosaice")
 
 top_bottom_shift = int(len(images_col)*480)
 left_right_shift = int(len(images_col)*640)
-print("shifts ", top_bottom_shift, left_right_shift)
 mosaice = images_col[startImageIdx]
 base_img_augm = cv2.copyMakeBorder(mosaice, top_bottom_shift, top_bottom_shift, left_right_shift, left_right_shift, cv2.BORDER_CONSTANT, None, 0)
 
 
 resultIdx = 0
 for node in PreOrderIter(treeHead):
-
-    print(node.name)
     if node.parent is not None:
-        print("stiching ", node.name)
+        print("stiching image idx", node.name)
         sourceImg = images_col[node.imageIdx]
         h = node.H
 
@@ -154,47 +145,35 @@ for node in PreOrderIter(treeHead):
             c = c.parent
             h = np.matmul(c.H, h)
 
-        print("h ", h)
-        changedSign = False
+        
+        # to prevent the warped image to be placed outside the image limits,
+        # the additional translation to center the warped image in the center as the starting one,
+        # is applied at priori
+        H_t = np.float32([[1,0,left_right_shift],[0,1,top_bottom_shift],[0,0,1]])
+        h = np.matmul(H_t, h)
+
+        # changedSign = False
         # if h[0,2] < 0  or h[1,2]:
-        #     h[0,1] = -h[0,1]
-        #     h[0,2] = -h[0,2]
-        #     changedSign = True
+        #      h[0,1] = -h[0,1]
+        #      h[0,2] = -h[0,2]
+        #      changedSign = True
 
 
         img_warped = cv2.warpPerspective(sourceImg, h, (base_img_augm.shape[1], base_img_augm.shape[0]))
         cv2.imwrite(str(outputSavePath + "/loftr/img_warped_" + str(resultIdx) + ".jpg"), img_warped)
         
-        if changedSign:
-            M = np.float32([[1,0,left_right_shift - h[0,1]],[0,1,top_bottom_shift - h[0,2]]])
-        else:
-            M = np.float32([[1,0,left_right_shift],[0,1,top_bottom_shift]])
-        img_shifted = cv2.warpAffine(img_warped, M,(base_img_augm.shape[1], base_img_augm.shape[0]))
-        cv2.imwrite(str(outputSavePath + "/loftr/img_shifted_" + str(resultIdx) + ".jpg"), img_shifted)
+        # if changedSign:
+        #     M = np.float32([[1,0,left_right_shift - h[0,1]],[0,1,top_bottom_shift - h[0,2]]])
+        # else:
+        #     M = np.float32([[1,0,left_right_shift],[0,1,top_bottom_shift]])
+        # img_shifted = cv2.warpAffine(img_warped, M,(base_img_augm.shape[1], base_img_augm.shape[0]))
+        # cv2.imwrite(str(outputSavePath + "/loftr/img_shifted_" + str(resultIdx) + ".jpg"), img_shifted)
 
-        I_blended = blending(base_img_augm, img_shifted, True)
+        I_blended = blending(base_img_augm, img_warped, True, outputSavePath)
 
         cv2.imwrite(str(outputSavePath + "/loftr/img_blended_" + str(resultIdx) + ".jpg"), I_blended)
         base_img_augm = I_blended
         resultIdx+=1
 
 trimmed = trim_black_countour(I_blended)
-cv2.imwrite( str("".join([outputSavePath, "/loftr/final_result.jpg"])), trimmed)
-
-
-# arena tree
-# 4
-# ├── 8
-# │   ├── 0
-# │   │   └── 2
-# │   │       └── 5
-# │   └── 6
-# │       └── 7
-# │           └── 1
-# │               └── 11
-# │                   └── 3
-# └── 13
-#     ├── 12
-#     └── 9
-#         ├── 10
-#         └── 14
+cv2.imwrite( str("".join([outputSavePath, "/loftr_final_result.jpg"])), trimmed)
