@@ -49,7 +49,7 @@ def getPathToImages(datasetIndex):
     elif datasetIndex == 8:
         relativePathFolder = 'images/halfdome/source_images/'
         outputSavePath = 'images/halfdome/'
-        startImgIndex = 0
+        startImgIndex = 4
 
     elif datasetIndex == 9:
         relativePathFolder = 'images/hotel/source_images/'
@@ -99,7 +99,7 @@ def getPathToImages(datasetIndex):
     elif datasetIndex == 18:
         relativePathFolder = 'images/yard/source_images/'
         outputSavePath = 'images/yard/'
-        startImgIndex = 0
+        startImgIndex = 3
     
     else:
         relativePathFolder = 'wrongCaseIdx'
@@ -181,7 +181,7 @@ def blending(I1, I2, blendingOn, outputSavePath):
         
     return I_blended
 
-def getMatches(descr_1, descr_2):
+def getSiftMatches(descr_1, descr_2):
     # FlannBasedMatcher
     matcher = cv2.DescriptorMatcher_create(cv2.DescriptorMatcher_FLANNBASED)
     return matcher.knnMatch(descr_1, descr_2, 2)
@@ -189,7 +189,7 @@ def getMatches(descr_1, descr_2):
 def get_distance(e):
     return e.distance
  
-def getSortedMatches(matches, percentageDistanceThesh):
+def getSiftSortedMatches(matches, percentageDistanceThesh):
         # percentageDistanceThesh must be between 0 and 1
         sortedMatches = []
         for m, n in matches:
@@ -215,36 +215,10 @@ def getHMatrixSIFT(matches, kp_base, kp_toWarp, numberOfPoints, iterations):
         pts_toWarp = np.concatenate((pts_toWarp, [[kp_toWarp[toWarpImage_idx].pt[0], kp_toWarp[toWarpImage_idx].pt[1]]]))
 
     h, status = cv2.findHomography(pts_toWarp, pts_base, cv2.RANSAC, maxIters = iterations)
-    print("SIFT: h ", h )
+    # print("SIFT: h ", h )
     return h
 
-def compH_getHMatrixSIFT(matches, dest_kp, source_kp, numberOfPoints, iterations):
-    
-    dest_idx = matches[0].queryIdx
-    source_idx = matches[0].trainIdx
-    pts_dest = np.array([[dest_kp[dest_idx].pt[0], dest_kp[dest_idx].pt[1]]])
-    pts_source = np.array([[source_kp[source_idx].pt[0], source_kp[source_idx].pt[1]]])
-
-    for x in range(numberOfPoints-1):
-        dest_idx = matches[0].queryIdx
-        source_idx = matches[0].trainIdx
-
-        pts_dest = np.concatenate((pts_dest, [[dest_kp[dest_idx].pt[0], dest_kp[dest_idx].pt[1]]]))
-        pts_source = np.concatenate((pts_source, [[source_kp[source_idx].pt[0], source_kp[source_idx].pt[1]]]))
-
-    h, status = cv2.findHomography(pts_source, pts_dest, cv2.RANSAC, maxIters = iterations)
-    print("SIFT: h ", h )
-    return h
-
-def getHMatrixLOFTR(kp_base, kp_ts, numberOfPoints, iterations):
-    
-    h, status = cv2.findHomography(kp_base, kp_ts, cv2.RANSAC, maxIters = iterations)
-
-    print("LOFTR: h ", h )
-
-    return h
-
-def drawMatches(img1, keypoints1, img2, keypoints2, matches, showMatches, outputSavePath, iteration):
+def drawSiftMatches(img1, keypoints1, img2, keypoints2, matches, showMatches, outputSavePath, iteration):
     #-- Draw matches
     
     #img_matches = np.empty((max(img1.shape[0], img2.shape[0]), img1.shape[1]+img2.shape[1], 3), dtype=np.uint8)
