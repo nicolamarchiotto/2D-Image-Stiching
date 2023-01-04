@@ -9,8 +9,10 @@ import os
 from anytree import Node, RenderTree, PreOrderIter, Resolver
 
 # Detection method of features, 0 SIFT, 1 LOFTR NEURAL NETWORK
-
 features_detection_method = 1
+
+# Save intermediate steps, requires folders named sift and loftr in the image dataset folder
+saveIntermediateSteps = False
 
 # Initialize LoFTR
 matcher = LoFTR(config=default_cfg)
@@ -214,12 +216,14 @@ for node in PreOrderIter(treeHead):
 
         I_blended = blending(base_img_augm, img_warped, True, outputSavePath)
 
-        if features_detection_method == 0:
-            cv2.imwrite(str(outputSavePath + "/sift/img_warped_" + str(resultIdx) + ".jpg"), img_warped)
-            cv2.imwrite(str(outputSavePath + "/sift/img_blended_" + str(resultIdx) + ".jpg"), I_blended)
-        else:
-            cv2.imwrite(str(outputSavePath + "/loftr/img_warped_" + str(resultIdx) + ".jpg"), img_warped)
-            cv2.imwrite(str(outputSavePath + "/loftr/img_blended_" + str(resultIdx) + ".jpg"), I_blended)
+        # requires folders named sift and loftr in the outputSavePath
+        if saveIntermediateSteps:
+            if features_detection_method == 0:
+                cv2.imwrite(str(outputSavePath + "/sift/img_warped_" + str(resultIdx) + ".jpg"), img_warped)
+                cv2.imwrite(str(outputSavePath + "/sift/img_blended_" + str(resultIdx) + ".jpg"), I_blended)
+            else:
+                cv2.imwrite(str(outputSavePath + "/loftr/img_warped_" + str(resultIdx) + ".jpg"), img_warped)
+                cv2.imwrite(str(outputSavePath + "/loftr/img_blended_" + str(resultIdx) + ".jpg"), I_blended)
 
         base_img_augm = I_blended
         resultIdx+=1
