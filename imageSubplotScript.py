@@ -6,7 +6,7 @@ import numpy as np
 
 from functionsFile import *
 
-relativePathFolder, outputSavePath, defaultStartIdx = getPathToImages(18)
+relativePathFolder, outputSavePath, defaultStartIdx = getPathToImages(19)
 
 images = []
 for filename in os.listdir(relativePathFolder):

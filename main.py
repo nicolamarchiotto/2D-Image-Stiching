@@ -24,7 +24,7 @@ matcher = matcher.eval()
 sift = cv2.SIFT_create()
 
 # get dataset path
-relativePathFolder, outputSavePath, startImageIdx = getPathToImages(8)
+relativePathFolder, outputSavePath, startImageIdx = getPathToImages(17)
 
 
 images_col = []

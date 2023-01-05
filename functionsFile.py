@@ -92,11 +92,21 @@ def getPathToImages(datasetIndex):
         startImgIndex = 0
 
     elif datasetIndex == 17:
+        relativePathFolder = 'images/san_pietro_martire/source_images/'
+        outputSavePath = 'images/san_pietro_martire/'
+        startImgIndex = 0
+
+    elif datasetIndex == 18:
         relativePathFolder = 'images/shangai/source_images/'
         outputSavePath = 'images/shangai/'
         startImgIndex = 7
 
-    elif datasetIndex == 18:
+    elif datasetIndex == 19:    
+        relativePathFolder = 'images/torricelle/source_images/'
+        outputSavePath = 'images/torricelle/'
+        startImgIndex = 0
+    
+    elif datasetIndex == 20:
         relativePathFolder = 'images/yard/source_images/'
         outputSavePath = 'images/yard/'
         startImgIndex = 3
