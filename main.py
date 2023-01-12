@@ -7,12 +7,14 @@ import numpy as np
 from functionsFile import *
 import os
 from anytree import Node, RenderTree, PreOrderIter, Resolver
+from src.utils.plotting import make_matching_figure
 
 # Detection method of features, 0 SIFT, 1 LOFTR NEURAL NETWORK
-features_detection_method = 1
+features_detection_method = 0
 
 # Save intermediate steps, requires folders named sift and loftr in the image dataset folder
-saveIntermediateSteps = False
+saveIntermediateSteps = True
+saveDrawMatches = True
 
 # Initialize LoFTR
 matcher = LoFTR(config=default_cfg)
@@ -24,7 +26,7 @@ matcher = matcher.eval()
 sift = cv2.SIFT_create()
 
 # get dataset path
-relativePathFolder, outputSavePath, startImageIdx = getPathToImages(17)
+relativePathFolder, outputSavePath, startImageIdx = getPathToImages(3)
 
 
 images_col = []
@@ -97,7 +99,7 @@ with torch.no_grad():
         loftr_chosenTargetImg_matches = []
         loftr_chosenSourceImg_idx = 0
         loftr_chosenSourceImg_matches = []
-
+        loftr_mconf = []
 
         sift_bestMatches = []
         sift_chosenTargetImg_idx = 0 
@@ -111,6 +113,7 @@ with torch.no_grad():
                     if features_detection_method == 0:
                         matches = getSiftMatches(sift_image_descr[targetIdx],  sift_image_descr[i])
                         orderedMatches = getSiftSortedMatches(matches, 0.7)
+                        
                         if len(orderedMatches) > len(sift_bestMatches):
                             sift_bestMatches = orderedMatches
                             sift_chosenSourceImg_idx = i
@@ -123,7 +126,11 @@ with torch.no_grad():
                         mkpts_target = batch['mkpts0_f'].cpu().numpy()
                         mkpts_source = batch['mkpts1_f'].cpu().numpy()
                         mconf = batch['mconf'].cpu().numpy()
-                        
+            
+                        mkpts_target, mkpts_source, mconf = getLoftrSortedMatches(mkpts_target, mkpts_source, mconf, 0.7)
+                        # delete matches with confidance less than 0.7
+
+
                         # valid correspondance if more than n matches are found between the two images
                         # print("correspondances ", len(mkpts_target))
                         if len(mkpts_target) > len(loftr_chosenSourceImg_matches):
@@ -132,6 +139,7 @@ with torch.no_grad():
 
                             loftr_chosenSourceImg_matches = mkpts_source
                             loftr_chosenTargetImg_matches = mkpts_target
+                            loftr_mconf = mconf
 
         if features_detection_method == 0:
             matchesLen = len(sift_bestMatches)
@@ -142,6 +150,35 @@ with torch.no_grad():
             t_idx = loftr_chosenTargetImg_idx
             s_idx = loftr_chosenSourceImg_idx
             
+        sift_draw_params = dict(matchColor = (0,255,0), # draw matches in green color
+                        singlePointColor = None,
+                        # matchesMask = matchesMask, # draw only inliers
+                        flags = 2)
+            
+        if saveDrawMatches:
+            if features_detection_method == 0:
+              
+                img_matches = cv2.drawMatches(images_col[t_idx],  sift_image_kp[t_idx], images_col[s_idx],  sift_image_kp[s_idx], sift_bestMatches, None,  **sift_draw_params)
+                text ="SIFT\nAll matches: " + str(len(sift_bestMatches))+"\nTarget idx: "+str(t_idx)+" Source idx: "+str(s_idx) 
+                txt_color = (0, 0, 0) #if img_matches[:100, :200].mean() > 200 else (255, 255, 255)
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                fontScale = 0.8
+                org = (50, 50)
+                thickness = 1
+                y0, dy = 25, 30
+                for i, line in enumerate(text.split('\n')):
+                    y = y0 + i*dy
+                    cv2.putText(img_matches, line, (10, y ), cv2.FONT_HERSHEY_SIMPLEX, fontScale, txt_color, thickness, cv2.LINE_AA)
+                cv2.imwrite(f"{outputSavePath}/sift/matchesAll_{t_idx}_{s_idx}.jpg", img_matches)
+            else:
+                color = cm.jet(loftr_mconf)
+                text = [
+                    'LoFTR',
+                    'All matches: {}'.format(len(loftr_chosenSourceImg_matches)),
+                    'Target idx: '+str(t_idx)+' Source idx: '+str(s_idx),
+                ]
+                img_matches = make_matching_figure(images_col[t_idx][:,:,::-1], images_col[s_idx][:,:,::-1], loftr_chosenTargetImg_matches, loftr_chosenSourceImg_matches, color, text=text, path=f"{outputSavePath}/loftr/matchesAll_{t_idx}_{s_idx}.jpg")
+
         # discard correspondance if less than n matches are found, breaking search
         if matchesLen < 50:
             print("no images with enough correspondances, breaking iter")
@@ -151,11 +188,53 @@ with torch.no_grad():
             print("Number of matches ", matchesLen)
 
         # transformation matrix which move image to be stiched in target image
+        # threshold by default equal to 3
+
         if features_detection_method == 0:
-            h = getHMatrixSIFT(sift_bestMatches, sift_image_kp[t_idx], sift_image_kp[s_idx],  len(sift_bestMatches), 50)
+            h, status, target_kp_inliers, source_kp_inliers = getHMatrixSIFT(sift_bestMatches, sift_image_kp[t_idx], sift_image_kp[s_idx],  len(sift_bestMatches), 50)
+            
+            if saveDrawMatches:
+                color = cm.jet(np.zeros(len(source_kp_inliers)))
+                text = [
+                    'SIFT',
+                    'Inliers matches: {}'.format(len(target_kp_inliers)),
+                    'Target idx: '+str(t_idx)+' Source idx: '+str(s_idx),
+
+                ]
+                img_matches_inliers = make_matching_figure(images_col[t_idx][:,:,::-1], images_col[s_idx][:,:,::-1], target_kp_inliers, source_kp_inliers, color, text=text, path=f"{outputSavePath}/sift/matchesInliers_{t_idx}_{s_idx}.jpg")
         else:
             h, status = cv2.findHomography(loftr_chosenSourceImg_matches, loftr_chosenTargetImg_matches, cv2.RANSAC, maxIters = 50)
-    
+            
+            if saveDrawMatches:
+                target_kp_inliers=[]
+                source_kp_inliers=[]
+                matchesMask = status.ravel().tolist()
+                for i in range(len(matchesMask)):
+                    if matchesMask[i]==1:
+                        target_kp_inliers.append(loftr_chosenTargetImg_matches[i])
+                        source_kp_inliers.append(loftr_chosenSourceImg_matches[i])
+                        
+                t_kp_inliers=np.array(target_kp_inliers)
+                s_kp_inliers=np.array(source_kp_inliers)
+
+                color = cm.jet(np.zeros(len(t_kp_inliers)))
+                text = [
+                        'LoFTR',
+                        'Inliers matches: {}'.format(len(t_kp_inliers)),
+                        'Target idx: '+str(t_idx)+' Source idx: '+str(s_idx),
+                    ]
+                
+                img_matches_inliers = make_matching_figure(images_col[t_idx][:,:,::-1], images_col[s_idx][:,:,::-1], t_kp_inliers, s_kp_inliers, color, text=text, path=f"{outputSavePath}/loftr/matchesInliers_{t_idx}_{s_idx}.jpg")
+
+        matchesMask = status.ravel().tolist()
+        numberOfInliers = matchesMask.count(1)
+        numberOfOutliers = matchesMask.count(0)
+
+        print("RANSAC found: inliers ", numberOfInliers, " outliers ", numberOfOutliers)
+
+        # image with only inliers matches
+
+
         imagesToBeStichedIdxArray.remove(s_idx)
             
         # attach node to the right one  
@@ -164,7 +243,7 @@ with torch.no_grad():
                 nodeToAttachTo = node
                 break
     
-        nodeToLink = Node(name=str(s_idx), imageIdx=s_idx, H=h, parent=nodeToAttachTo)
+        nodeToLink = Node(name=str(s_idx), imageIdx=s_idx, H=h, parent=nodeToAttachTo, numOfMatches=matchesLen, ransacInliers=numberOfInliers, ransacOutliers=numberOfOutliers)
 
         print("\nprinting tree")
         for pre, fill, node in RenderTree(treeHead):
@@ -177,6 +256,14 @@ with torch.no_grad():
 # BUILDING MOSAICE 
 #
 #
+
+if features_detection_method == 0:
+    text_file = open(outputSavePath+"/sift/correspondances_tree_sift.txt", "w", encoding='utf-8')
+else:
+    text_file = open(outputSavePath+"/loftr/correspondances_tree_loftr.txt", "w", encoding='utf-8')
+for pre, fill, node in RenderTree(treeHead):
+    text_file.write(str(pre) + str(node.name)+"\n")
+text_file.close()
 
 print("Building the mosaice")
 

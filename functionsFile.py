@@ -209,24 +209,47 @@ def getSiftSortedMatches(matches, percentageDistanceThesh):
         list.sort(sortedMatches, key = get_distance)
 
         return sortedMatches
-                
-def getHMatrixSIFT(matches, kp_base, kp_toWarp, numberOfPoints, iterations):
+
+
+def getLoftrSortedMatches(mkpts_target, mkpts_source, mconf, treshholdConfidence):
+        # treshholdConfidence must be between 0 and 1
+        new_mkpts_target=[]
+        new_mkpts_source=[]
+        new_mconf=[]
+
+        for i in range(len(mconf)):
+            if mconf[i] < treshholdConfidence:
+                new_mconf.append(mconf[i])
+                new_mkpts_target.append(mkpts_target[i])
+                new_mkpts_source.append(mkpts_source[i])
+
+        return (np.array(new_mkpts_target), np.array(new_mkpts_source), np.array(new_mconf))
+                                
+def getHMatrixSIFT(matches, kp_target, kp_source, numberOfPoints, iterations):
     
     baseImage_idx = matches[0].queryIdx
     toWarpImage_idx = matches[0].trainIdx
-    pts_base = np.array([[kp_base[baseImage_idx].pt[0], kp_base[baseImage_idx].pt[1]]])
-    pts_toWarp = np.array([[kp_toWarp[toWarpImage_idx].pt[0], kp_toWarp[toWarpImage_idx].pt[1]]])
+    pts_target = np.array([[kp_target[baseImage_idx].pt[0], kp_target[baseImage_idx].pt[1]]])
+    pts_source = np.array([[kp_source[toWarpImage_idx].pt[0], kp_source[toWarpImage_idx].pt[1]]])
 
     for x in range(numberOfPoints-1):
         baseImage_idx = matches[x].queryIdx
         toWarpImage_idx = matches[x].trainIdx
 
-        pts_base = np.concatenate((pts_base, [[kp_base[baseImage_idx].pt[0], kp_base[baseImage_idx].pt[1]]]))
-        pts_toWarp = np.concatenate((pts_toWarp, [[kp_toWarp[toWarpImage_idx].pt[0], kp_toWarp[toWarpImage_idx].pt[1]]]))
+        pts_target = np.concatenate((pts_target, [[kp_target[baseImage_idx].pt[0], kp_target[baseImage_idx].pt[1]]]))
+        pts_source = np.concatenate((pts_source, [[kp_source[toWarpImage_idx].pt[0], kp_source[toWarpImage_idx].pt[1]]]))
 
-    h, status = cv2.findHomography(pts_toWarp, pts_base, cv2.RANSAC, maxIters = iterations)
-    # print("SIFT: h ", h )
-    return h
+    h, status = cv2.findHomography(pts_source, pts_target, cv2.RANSAC, maxIters = iterations)
+    matchesMask = status.ravel().tolist()
+    pts_target_inliers=[]
+    pts_source_inliers=[]
+
+    for i in range(len(matchesMask)):
+        if matchesMask[i]==1:
+            pts_target_inliers.append(pts_target[i])
+            pts_source_inliers.append(pts_source[i])
+
+    return (h, status, np.array(pts_target_inliers), np.array(pts_source_inliers))
 
 def drawSiftMatches(img1, keypoints1, img2, keypoints2, matches, showMatches, outputSavePath, iteration):
     #-- Draw matches

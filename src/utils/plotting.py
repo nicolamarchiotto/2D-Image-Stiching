@@ -52,7 +52,7 @@ def make_matching_figure(
         axes[1].scatter(mkpts1[:, 0], mkpts1[:, 1], c=color, s=4)
 
     # put txts
-    txt_color = 'k' if img0[:100, :200].mean() > 200 else 'w'
+    txt_color = 'k' #if img0[:100, :200].mean() > 200 else 'w'
     fig.text(
         0.01, 0.99, '\n'.join(text), transform=fig.axes[0].transAxes,
         fontsize=15, va='top', ha='left', color=txt_color)
